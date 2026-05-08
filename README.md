@@ -5,9 +5,11 @@ A Streamlit dashboard for exploring outfit themes, fashion categories, and basic
 ## Project Overview
 
 This project is based on an outfit recommendation research topic.  
-It provides a simple interactive dashboard for analyzing outfit data by theme and category.
+It provides an interactive dashboard for analyzing outfit data by theme, category, and outfit size.
 
-Current themes:
+The dashboard can use a built-in sample dataset or a user-uploaded CSV file.
+
+## Current Themes in Sample Data
 
 - Office Look
 - Ceremony
@@ -16,11 +18,16 @@ Current themes:
 
 ## Features
 
-- View total number of outfits
+- Load built-in sample outfit data
+- Upload a custom CSV file
+- Validate required CSV columns
 - Filter outfits by theme
+- Filter outfits by number of items
+- Show dataset overview metrics
 - Show theme distribution chart
-- Analyze category frequency
-- Display sample outfit dataset
+- Show category frequency table
+- Show theme-level summary
+- Display filtered outfit data
 
 ## Tech Stack
 
@@ -29,6 +36,21 @@ Current themes:
 - pandas
 - NumPy
 - matplotlib
+
+## Required CSV Format
+
+To upload your own dataset, the CSV file should contain these columns:
+
+```csv
+outfit_id,theme,top_category,bottom_category,shoe_category,accessory_category,num_items
+```
+
+Example:
+```csv
+outfit_id,theme,top_category,bottom_category,shoe_category,accessory_category,num_items
+O001,Office Look,Blouse,Trousers,Loafers,Watch,4
+O002,Sports,T-shirt,Shorts,Running Shoes,Cap,4
+```
 
 ## Project Structure
 
@@ -66,19 +88,23 @@ Run the dashboard:
 streamlit run app.py
 ```
 
+## Version History
+### Version 1
+- Created basic Streamlit dashboard
+- Added sample outfit dataset
+- Added theme distribution chart
+- Added category summary table
+
+### Version 2
+- Added CSV upload
+- Added required column validation
+- Added theme filter
+- Added outfit size filter
+- Added theme-level summary
+
 ## Future Improvements
-- Add CSV upload
-- Add theme prediction results
-- Add model comparison charts
+- Add model result visualization
 - Add FITB evaluation dashboard
 - Add category grouping analysis
-
----
-
-## 10. Push to GitHub
-
-```bash
-git init
-git add .
-git commit -m "Initial version of outfit theme dashboard"
-```
+- Add model comparison charts
+- Add downloadable reports
