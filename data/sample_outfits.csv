@@ -1,0 +1,17 @@
+outfit_id,theme,top_category,bottom_category,shoe_category,accessory_category,num_items
+O001,Office Look,Blouse,Trousers,Loafers,Watch,4
+O002,Office Look,Shirt,Skirt,Heels,Bag,4
+O003,Office Look,Blazer,Trousers,Loafers,Belt,5
+O004,Ceremony,Dress,None,Heels,Necklace,4
+O005,Ceremony,Blouse,Skirt,Heels,Earrings,4
+O006,Ceremony,Suit,Trousers,Dress Shoes,Watch,5
+O007,Travel,T-shirt,Jeans,Sneakers,Backpack,4
+O008,Travel,Hoodie,Joggers,Sneakers,Cap,4
+O009,Travel,Sweater,Jeans,Boots,Bag,5
+O010,Sports,T-shirt,Shorts,Running Shoes,Cap,4
+O011,Sports,Tank Top,Leggings,Training Shoes,None,4
+O012,Sports,Hoodie,Joggers,Sneakers,Sports Bag,5
+O013,Office Look,Knit Top,Trousers,Heels,Bag,4
+O014,Ceremony,Dress,None,Heels,Clutch,4
+O015,Travel,Shirt,Chinos,Sneakers,Backpack,4
+O016,Sports,Jersey,Shorts,Running Shoes,None,4
