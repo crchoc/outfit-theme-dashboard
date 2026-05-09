@@ -4,3 +4,8 @@ __pycache__/
 .env
 .DS_Store
 .streamlit/
+data/cleaned_outfits_train.json
+data/cleaned_outfits_test.json
+data/category_idx.json
+data/category_summarize.json
+sample_data.py

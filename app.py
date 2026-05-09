@@ -1,158 +1,183 @@
-import streamlit as st
-import pandas as pd
+import json
+from collections import Counter
+
 import matplotlib.pyplot as plt
+import pandas as pd
+import streamlit as st
 
 
 st.set_page_config(
-    page_title="Outfit Theme Analysis Dashboard",
+    page_title="Outfit Theme Research Dashboard",
     page_icon="👗",
-    layout="wide"
+    layout="wide",
 )
 
 
-REQUIRED_COLUMNS = [
-    "outfit_id",
-    "theme",
-    "top_category",
-    "bottom_category",
-    "shoe_category",
-    "accessory_category",
-    "num_items"
-]
+TRAIN_PATH = "data/cleaned_outfits_train.json"
+TEST_PATH = "data/cleaned_outfits_test.json"
+CATEGORY_SUMMARY_PATH = "data/category_summarize.json"
 
 
 @st.cache_data
-def load_sample_data():
-    return pd.read_csv("data/sample_outfits.csv")
+def load_json(path):
+    with open(path, "r", encoding="utf-8") as file:
+        return json.load(file)
 
 
-def validate_data(df):
-    missing_columns = [col for col in REQUIRED_COLUMNS if col not in df.columns]
+@st.cache_data
+def load_outfit_data():
+    train_data = load_json(TRAIN_PATH)
+    test_data = load_json(TEST_PATH)
 
-    if missing_columns:
-        return False, missing_columns
+    train_df = pd.DataFrame(train_data)
+    test_df = pd.DataFrame(test_data)
 
-    return True, []
+    train_df["split"] = "train"
+    test_df["split"] = "test"
 
+    df = pd.concat([train_df, test_df], ignore_index=True)
 
-def load_uploaded_data(uploaded_file):
-    try:
-        df = pd.read_csv(uploaded_file)
-        is_valid, missing_columns = validate_data(df)
-
-        if not is_valid:
-            return None, missing_columns, "missing_columns"
-
-        return df, [], None
-
-    except Exception:
-        return None, [], "read_error"
-
-
-def clean_data(df):
-    df = df.copy()
-
-    df["theme"] = df["theme"].astype(str)
-    df["outfit_id"] = df["outfit_id"].astype(str)
-
-    df["num_items"] = pd.to_numeric(df["num_items"], errors="coerce")
-    df = df.dropna(subset=["num_items"])
-    df["num_items"] = df["num_items"].astype(int)
+    df["num_items"] = df["items_category"].apply(len)
+    df["category_ids_text"] = df["items_category"].apply(
+        lambda values: ", ".join(map(str, values))
+    )
 
     return df
 
 
-st.title("Outfit Theme Analysis Dashboard")
+@st.cache_data
+def load_category_summary():
+    category_data = load_json(CATEGORY_SUMMARY_PATH)
+
+    category_df = pd.DataFrame(category_data)
+
+    if "items" in category_df.columns:
+        category_df["num_item_examples"] = category_df["items"].apply(len)
+
+    return category_df
+
+
+def build_category_frequency(outfit_df, category_df):
+    all_category_ids = []
+
+    for categories in outfit_df["items_category"]:
+        all_category_ids.extend(categories)
+
+    frequency_counter = Counter(all_category_ids)
+
+    frequency_df = pd.DataFrame(
+        [
+            {"id": category_id, "count_in_outfits": count}
+            for category_id, count in frequency_counter.items()
+        ]
+    )
+
+    frequency_df["id"] = frequency_df["id"].astype(int)
+    category_df["id"] = category_df["id"].astype(int)
+
+    merged_df = frequency_df.merge(
+        category_df[["id", "name", "frequency"]],
+        on="id",
+        how="left",
+    )
+
+    merged_df = merged_df.sort_values(
+        "count_in_outfits",
+        ascending=False,
+    )
+
+    return merged_df
+
+
+outfit_df = load_outfit_data()
+category_df = load_category_summary()
+
+
+st.title("Outfit Theme Research Dashboard")
+
 st.write(
-    "An interactive dashboard for exploring outfit themes, fashion categories, and dataset statistics."
+    """
+    This dashboard explores the real outfit dataset used in a theme-aware outfit
+    recommendation research project. It summarizes train/test splits, theme labels,
+    outfit sizes, and category usage patterns.
+    """
 )
-
-
-st.sidebar.header("Data Source")
-
-uploaded_file = st.sidebar.file_uploader(
-    "Upload your outfit CSV file",
-    type=["csv"]
-)
-
-if uploaded_file is not None:
-    uploaded_df, missing_columns, error_type = load_uploaded_data(uploaded_file)
-
-    if error_type == "missing_columns":
-        st.error("The uploaded CSV file is missing required columns.")
-        st.write("Missing columns:")
-        st.write(missing_columns)
-
-        st.info("The dashboard is currently using the sample dataset instead.")
-        df = load_sample_data()
-
-    elif error_type == "read_error":
-        st.error("The uploaded file could not be read. Please upload a valid CSV file.")
-        st.info("The dashboard is currently using the sample dataset instead.")
-        df = load_sample_data()
-
-    else:
-        df = uploaded_df
-        st.sidebar.success("Uploaded CSV loaded successfully.")
-
-else:
-    df = load_sample_data()
-    st.sidebar.info("Using sample dataset.")
-
-
-df = clean_data(df)
 
 
 st.sidebar.header("Filters")
 
-theme_options = ["All"] + sorted(df["theme"].unique().tolist())
-selected_theme = st.sidebar.selectbox("Select theme", theme_options)
+split_options = ["All"] + sorted(outfit_df["split"].unique().tolist())
+selected_split = st.sidebar.selectbox("Dataset split", split_options)
 
-min_items = int(df["num_items"].min())
-max_items = int(df["num_items"].max())
+theme_options = ["All"] + sorted(outfit_df["theme"].unique().tolist())
+selected_theme = st.sidebar.selectbox("Theme", theme_options)
+
+min_items = int(outfit_df["num_items"].min())
+max_items = int(outfit_df["num_items"].max())
 
 selected_item_range = st.sidebar.slider(
     "Number of items per outfit",
     min_value=min_items,
     max_value=max_items,
-    value=(min_items, max_items)
+    value=(min_items, max_items),
 )
 
 
-filtered_df = df.copy()
+filtered_df = outfit_df.copy()
+
+if selected_split != "All":
+    filtered_df = filtered_df[filtered_df["split"] == selected_split]
 
 if selected_theme != "All":
     filtered_df = filtered_df[filtered_df["theme"] == selected_theme]
 
 filtered_df = filtered_df[
-    (filtered_df["num_items"] >= selected_item_range[0]) &
-    (filtered_df["num_items"] <= selected_item_range[1])
+    (filtered_df["num_items"] >= selected_item_range[0])
+    & (filtered_df["num_items"] <= selected_item_range[1])
 ]
+
+
+if filtered_df.empty:
+    st.warning("No outfits match the selected filters.")
+    st.stop()
 
 
 st.subheader("Dataset Overview")
 
-col1, col2, col3, col4 = st.columns(4)
+col1, col2, col3, col4, col5 = st.columns(5)
 
 with col1:
     st.metric("Total Outfits", len(filtered_df))
 
 with col2:
-    st.metric("Number of Themes", filtered_df["theme"].nunique())
+    st.metric("Themes", filtered_df["theme"].nunique())
 
 with col3:
-    if len(filtered_df) > 0:
-        st.metric("Average Items", round(filtered_df["num_items"].mean(), 2))
-    else:
-        st.metric("Average Items", 0)
+    st.metric("Categories", len(category_df))
 
 with col4:
-    st.metric("Original Dataset Size", len(df))
+    st.metric("Average Items", round(filtered_df["num_items"].mean(), 2))
+
+with col5:
+    st.metric("Max Items", int(filtered_df["num_items"].max()))
 
 
-if len(filtered_df) == 0:
-    st.warning("No outfits match the selected filters.")
-    st.stop()
+st.subheader("Split Summary")
+
+split_summary = (
+    outfit_df.groupby("split")
+    .agg(
+        total_outfits=("set_id", "count"),
+        average_items=("num_items", "mean"),
+        min_items=("num_items", "min"),
+        max_items=("num_items", "max"),
+    )
+    .reset_index()
+)
+
+split_summary["average_items"] = split_summary["average_items"].round(2)
+
+st.dataframe(split_summary, use_container_width=True)
 
 
 st.subheader("Theme Distribution")
@@ -163,49 +188,37 @@ fig, ax = plt.subplots()
 ax.bar(theme_counts.index, theme_counts.values)
 ax.set_xlabel("Theme")
 ax.set_ylabel("Number of Outfits")
-ax.set_title("Number of Outfits by Theme")
+ax.set_title("Theme Distribution")
 plt.xticks(rotation=30)
 
 st.pyplot(fig)
 
 
-st.subheader("Category Summary")
+st.subheader("Outfit Size Distribution")
 
-category_columns = [
-    "top_category",
-    "bottom_category",
-    "shoe_category",
-    "accessory_category"
-]
+size_counts = filtered_df["num_items"].value_counts().sort_index()
 
-selected_category_column = st.selectbox(
-    "Choose category type",
-    category_columns
-)
+fig, ax = plt.subplots()
+ax.bar(size_counts.index.astype(str), size_counts.values)
+ax.set_xlabel("Number of Items")
+ax.set_ylabel("Number of Outfits")
+ax.set_title("Outfit Size Distribution")
 
-category_counts = (
-    filtered_df[selected_category_column]
-    .replace("None", pd.NA)
-    .dropna()
-    .value_counts()
-    .reset_index()
-)
-
-category_counts.columns = ["Category", "Count"]
-
-st.dataframe(category_counts, use_container_width=True)
+st.pyplot(fig)
 
 
 st.subheader("Theme-Level Summary")
 
 theme_summary = (
-    filtered_df
-    .groupby("theme")
+    filtered_df.groupby("theme")
     .agg(
-        total_outfits=("outfit_id", "count"),
-        average_items=("num_items", "mean")
+        total_outfits=("set_id", "count"),
+        average_items=("num_items", "mean"),
+        min_items=("num_items", "min"),
+        max_items=("num_items", "max"),
     )
     .reset_index()
+    .sort_values("total_outfits", ascending=False)
 )
 
 theme_summary["average_items"] = theme_summary["average_items"].round(2)
@@ -213,30 +226,69 @@ theme_summary["average_items"] = theme_summary["average_items"].round(2)
 st.dataframe(theme_summary, use_container_width=True)
 
 
-st.subheader("Outfit Data")
+st.subheader("Top Category Usage")
 
-st.dataframe(filtered_df, use_container_width=True)
+category_frequency_df = build_category_frequency(filtered_df, category_df)
 
-
-st.subheader("Required CSV Format")
-
-st.write(
-    "To upload your own data, the CSV file should contain the following columns:"
+top_n = st.slider(
+    "Number of top categories to show",
+    min_value=5,
+    max_value=30,
+    value=15,
 )
 
-st.code(
-    "outfit_id, theme, top_category, bottom_category, shoe_category, accessory_category, num_items"
+top_categories = category_frequency_df.head(top_n)
+
+fig, ax = plt.subplots()
+ax.barh(top_categories["name"], top_categories["count_in_outfits"])
+ax.set_xlabel("Count in Filtered Outfits")
+ax.set_ylabel("Category")
+ax.set_title("Most Frequent Categories")
+ax.invert_yaxis()
+
+st.pyplot(fig)
+
+st.dataframe(top_categories, use_container_width=True)
+
+
+st.subheader("Category Metadata")
+
+category_display_columns = ["id", "name", "frequency"]
+
+if "num_item_examples" in category_df.columns:
+    category_display_columns.append("num_item_examples")
+
+st.dataframe(
+    category_df[category_display_columns].sort_values(
+        "frequency",
+        ascending=False,
+    ),
+    use_container_width=True,
 )
 
 
-st.subheader("Project Purpose")
+st.subheader("Real Outfit Records")
+
+display_columns = [
+    "set_id",
+    "split",
+    "theme",
+    "num_items",
+    "category_ids_text",
+]
+
+st.dataframe(
+    filtered_df[display_columns].head(300),
+    use_container_width=True,
+)
+
+
+st.subheader("Portfolio Note")
 
 st.write(
     """
-    This dashboard is designed as a portfolio project based on outfit recommendation research.
-    Version 2 adds CSV upload, basic data validation, and improved filtering.
-    
-    Future versions can include model result visualization, FITB analysis,
-    category grouping comparison, and research-style performance dashboards.
+    This project transforms research preprocessing files into an interactive dashboard.
+    It demonstrates practical skills in Python, data cleaning, exploratory analysis,
+    visualization, and research data presentation.
     """
 )

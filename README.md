@@ -1,33 +1,23 @@
-# Outfit Theme Analysis Dashboard
+# Outfit Theme Research Dashboard
 
 A Streamlit dashboard for exploring outfit themes, fashion categories, and basic dataset statistics.
 
 ## Project Overview
 
-This project is based on an outfit recommendation research topic.  
-It provides an interactive dashboard for analyzing outfit data by theme, category, and outfit size.
+This project is an interactive Streamlit dashboard for exploring a real outfit recommendation research dataset.
 
-The dashboard can use a built-in sample dataset or a user-uploaded CSV file.
-
-## Current Themes in Sample Data
-
-- Office Look
-- Ceremony
-- Travel
-- Sports
+The dashboard analyzes outfit theme labels, train/test splits, outfit size distributions, and fashion category usage patterns. It is based on data preprocessing files used in a theme-aware outfit recommendation research project.
 
 ## Features
 
-- Load built-in sample outfit data
-- Upload a custom CSV file
-- Validate required CSV columns
-- Filter outfits by theme
-- Filter outfits by number of items
-- Show dataset overview metrics
-- Show theme distribution chart
-- Show category frequency table
-- Show theme-level summary
-- Display filtered outfit data
+- Load real train/test outfit JSON files
+- Analyze theme distribution
+- Compare train and test splits
+- Explore outfit size distribution
+- Show most frequent fashion categories
+- View category metadata
+- Filter by split, theme, and number of outfit items
+- Display real outfit records
 
 ## Tech Stack
 
